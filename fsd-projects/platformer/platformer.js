@@ -34,17 +34,59 @@ $(function () {
 createPlatform (200,650,100,20, "red")
 createPlatform (300,600,100,20, "red")
 createPlatform (400,500,100,10, "red")
-createPlatform (500,400,50,10, "red")
-createPlatform (800,400,5,5,"red")
-createPlatform (1000,400,5,5,"red")
+createPlatform (500,400,300,10, "red")
+createPlatform (800,400,100,10,"red")
+createPlatform (1000,400,100,10,"red") 
+createPlatform (800,240,100,10,"red")
+createPlatform (1080,350,20,35,"red")
+createPlatform (800,200,20,20,"red")
+createPlatform (850,100,300,10,"red")
+createPlatform (1150,100,10,500,"red")
+createPlatform (1150,600,100,10,"red")
+createPlatform (1300,10,10,500,"red")
+createPlatform (500,240,300,10,"red")
+createPlatform (400,240,100,10,"red")
+createPlatform (400,240,10,160,"red")
+createPlatform (500,400,10,110,"red")
+createPlatform (100,500,1,1,"red")
+createPlatform (50,400,1,1,"red")
+createPlatform (150,300,1,1,"red")
+createPlatform (400,90,10,160,"red")
+createPlatform (1000,400,10,170,"red")
+createPlatform (1000,570,100,10,"red")
+createPlatform (500,670,630,1,"lightblue")
+createPlatform (200,200,20,10,"red")
+createPlatform (1150,300,50,10,"red")
+createPlatform (1300,600,100,10,"red")
+createPlatform (10,670,100,10,"red")
+createPlatform (400,135,50,10,"red")
+
+
+
+createBadPlatform(650, 200, 150, 0.2, 'lightblue')
+createBadPlatform(900, 668, 25, 1,"lightblue")
 
 
     // TODO 3 - Create Collectables
+    createCollectable ("max",450,400)
+    createCollectable ("max",100,100)
+    createCollectable ("max",400,200)
+    createCollectable ("max",1050,500)
+    createCollectable ("max",1000,50)
+    createCollectable ("max",1350,500)
+    
+    
 
 
 
     
     // TODO 4 - Create Cannons
+createCannon ("top",300,1800);;
+createCannon ("top", 600,2000);
+createCannon ("right",770,0.1);
+createCannon ("top",700,1800);
+createCannon ("top",1000,1500);
+createCannon ("top",800,1800);
 
 
     
