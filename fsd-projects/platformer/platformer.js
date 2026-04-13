@@ -68,12 +68,12 @@ createBadPlatform(900, 668, 25, 1,"lightblue")
 
 
     // TODO 3 - Create Collectables
-    createCollectable ("max",450,400)
-    createCollectable ("max",100,100)
-    createCollectable ("max",400,200)
-    createCollectable ("max",1050,500)
-    createCollectable ("max",1000,50)
-    createCollectable ("max",1350,500)
+    createCollectable ("minecraftdiamond",450,400)
+    createCollectable ("minecraftdiamond",100,100)
+    createCollectable ("minecraftdiamond",400,200)
+    createCollectable ("minecraftdiamond",1050,500)
+    createCollectable ("minecraftdiamond",1000,50)
+    createCollectable ("minecraftdiamond",1350,500)
     
     
 

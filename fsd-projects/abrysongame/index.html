@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3D Lava Runner</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial Black', sans-serif; color: white; }
+        #ui { position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; pointer-events: none; z-index: 100; }
+        .overlay { background: rgba(0, 0, 0, 0.9); padding: 30px; border: 4px solid white; border-radius: 20px; pointer-events: auto; text-align: center; min-width: 450px; }
+        #multi-info { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.8); border: 1px solid white; padding: 12px; border-radius: 10px; display: none; text-align: left; font-size: 13px; z-index: 200; }
+        button { background: #ff4400; color: white; border: 2px solid white; padding: 12px 24px; margin: 10px; cursor: pointer; font-size: 18px; border-radius: 5px; }
+        button:hover { background: #ff7700; transform: scale(1.05); }
+        .skin-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 20px 0; }
+        .skin-btn { width: 45px; height: 45px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .skin-btn:hover { border-color: white; transform: scale(1.1); }
+        #split-divider { position: absolute; left: 50%; top: 0; bottom: 0; width: 4px; background: white; display: none; z-index: 50; }
+        #hud { position: absolute; top: 20px; left: 20px; font-size: 24px; display: none; text-shadow: 2px 2px #000; }
+        h1, h2, p { text-transform: uppercase; margin: 10px 0; color: white; }
+    </style>
+</head>
+<body>
+    <div id="split-divider"></div>
+    <div id="multi-info">
+        <b style="border-bottom: 1px solid white; display: block; margin-bottom: 5px;">CONTROLS</b>
+        <b>P1 (Right):</b> ARROWS + <b>/</b> to JUMP<br>
+        <b>P2 (Left):</b> TFGH + <b>S</b> to JUMP
+    </div>
+
+    <div id="ui">
+        <div id="menu" class="overlay">
+            <h1>RUNNER</h1>
+            <div style="display: flex; gap: 40px;">
+                <div style="flex: 1;">
+                    <h2>Single Player</h2>
+                    <button onclick="pickMode(false)">PLAY</button>
+                </div>
+                <div style="width: 2px; background: white;"></div>
+                <div style="flex: 1;">
+                    <h2>Multiplayer</h2>
+                    <button onclick="pickMode(true)">BATTLE</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="skin-screen" class="overlay" style="display:none;">
+            <h2 id="skin-title">SELECT SKIN</h2>
+            <div class="skin-grid" id="skin-list"></div>
+        </div>
+
+        <div id="end-screen" class="overlay" style="display:none;">
+            <h1 id="end-msg">GAME OVER</h1>
+            <button onclick="restartMatch()">RESTART</button>
+            <button onclick="toMenu()">MENU</button>
+        </div>
+    </div>
+
+    <div id="hud">Score: 0</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const GRAVITY = -0.018, JUMP = 0.65, SPEED = 0.28, RISE = 0.015;
+        let scene, renderer, p1, p2, lava, cam1, cam2;
+        let active = false, waiting = true, multi = false, over = false;
+        let platforms = [], score = 0, spawnTimer;
+        let p1Col = 0xffffff, p2Col = 0xffffff;
+        const keys = {};
+
+        const skinColors = [
+            {n:'Red', c:0xff0000}, {n:'Pink', c:0xffc0cb}, {n:'Black', c:0x111111}, 
+            {n:'Green', c:0x00ff00}, {n:'Blue', c:0x0000ff}, {n:'Gray', c:0x808080}, 
+            {n:'White', c:0xffffff}, {n:'Yellow', c:0xffff00}, {n:'Orange', c:0xff8800}
+        ];
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050000);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setScissorTest(true);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            cam1 = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+            cam2 = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+
+            const light = new THREE.DirectionalLight(0xffffff, 1.2);
+            light.position.set(10, 50, 10);
+            light.castShadow = true;
+            light.shadow.mapSize.width = 1024;
+            light.shadow.mapSize.height = 1024;
+            scene.add(light, new THREE.AmbientLight(0x404040));
+
+            window.addEventListener('keydown', e => { 
+                keys[e.code] = true; 
+                if(active && waiting) {
+                    const movementCodes = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyT','KeyF','KeyG','KeyH'];
+                    if(movementCodes.includes(e.code)) startLava();
+                }
+            });
+            window.addEventListener('keyup', e => keys[e.code] = false);
+            window.addEventListener('resize', onResize);
+            gameLoop();
+        }
+
+        function onResize() {
+            const w = window.innerWidth, h = window.innerHeight;
+            renderer.setSize(w, h);
+            cam1.aspect = (multi ? w/2 : w) / h;
+            cam1.updateProjectionMatrix();
+            cam2.aspect = (w/2) / h;
+            cam2.updateProjectionMatrix();
+        }
+
+        function pickMode(isMulti) {
+            multi = isMulti;
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('skin-screen').style.display = 'block';
+            loadSkinMenu(1);
+        }
+
+        function loadSkinMenu(pNum) {
+            const container = document.getElementById('skin-list');
+            container.innerHTML = '';
+            document.getElementById('skin-title').innerText = multi ? `PLAYER ${pNum} SKIN` : "CHOOSE YOUR RUNNER";
+            skinColors.forEach(s => {
+                const b = document.createElement('div');
+                b.className = 'skin-btn';
+                b.style.backgroundColor = s.n;
+                b.onclick = () => {
+                    if(pNum === 1) { p1Col = s.c; if(multi) loadSkinMenu(2); else finalize(); }
+                    else { p2Col = s.c; finalize(); }
+                };
+                container.appendChild(b);
+            });
+        }
+
+        function finalize() {
+            document.getElementById('skin-screen').style.display = 'none';
+            document.getElementById('hud').style.display = 'block';
+            if(multi) {
+                document.getElementById('split-divider').style.display = 'block';
+                document.getElementById('multi-info').style.display = 'block';
+            }
+            if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+            onResize();
+            resetWorld();
+            active = true;
+        }
+
+        function resetWorld() {
+            platforms.forEach(p => scene.remove(p)); platforms = [];
+            if(p1) scene.remove(p1); if(p2) scene.remove(p2); if(lava) scene.remove(lava);
+            clearInterval(spawnTimer);
+            score = 0; over = false; waiting = true;
+            document.getElementById('hud').innerText = "Score: 0";
+            document.getElementById('end-screen').style.display = 'none';
+            p1 = createBall(p1Col, multi ? -4 : 0);
+            if(multi) p2 = createBall(p2Col, 4);
+            lava = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshStandardMaterial({ color: 0xff1100, emissive: 0x660000 }));
+            lava.rotation.x = -Math.PI/2; lava.position.y = -35;
+            scene.add(lava);
+            createPlatform(0, 0, 0, 15, false);
+        }
+
+        function createBall(col, x) {
+            const b = new THREE.Mesh(new THREE.SphereGeometry(0.8, 32, 32), new THREE.MeshStandardMaterial({ color: col }));
+            b.position.set(x, 2, 0);
+            b.castShadow = true;
+            b.userData = { vy: 0, grounded: false, dead: false };
+            scene.add(b); return b;
+        }
+
+        function createPlatform(x, y, z, size, fake) {
+            const p = new THREE.Mesh(new THREE.BoxGeometry(size, 0.8, size), new THREE.MeshStandardMaterial({ color: fake ? 0xff0000 : 0x555555, transparent: fake, opacity: fake ? 0.6 : 1 }));
+            p.position.set(x, y, z);
+            p.receiveShadow = true;
+            p.userData = { fake };
+            scene.add(p); platforms.push(p);
+        }
+
+        function spawn() {
+            const last = platforms[platforms.length-1];
+            const nz = last.position.z - 6.2, ny = last.position.y + 2.8;
+            if(Math.random() > 0.45) {
+                const fl = Math.random() > 0.5;
+                createPlatform(-5, ny, nz, 6.5, fl);
+                createPlatform(5, ny, nz, 6.5, !fl);
+            } else {
+                createPlatform((Math.random()-0.5)*10, ny, nz, 8, false);
+            }
+            score++; document.getElementById('hud').innerText = "Score: " + score;
+            if(platforms.length > 45) scene.remove(platforms.shift());
+        }
+
+        function startLava() { waiting = false; spawnTimer = setInterval(spawn, 1000); }
+
+        function die(winner) {
+            over = true; clearInterval(spawnTimer);
+            document.getElementById('end-screen').style.display = 'block';
+            if(!multi) document.getElementById('end-msg').innerText = "SCORE: " + score;
+            else document.getElementById('end-msg').innerText = "PLAYER " + winner + " WINS!";
+        }
+
+        function restartMatch() { resetWorld(); }
+        function toMenu() { location.reload(); }
+
+        function physics(obj, id) {
+            if(!obj || obj.userData.dead) return;
+            obj.userData.vy += GRAVITY; obj.position.y += obj.userData.vy;
+            obj.userData.grounded = false;
+            platforms.forEach(p => {
+                const dx = Math.abs(obj.position.x - p.position.x), dz = Math.abs(obj.position.z - p.position.z), dy = obj.position.y - p.position.y;
+                if(!p.userData.fake && dx < p.geometry.parameters.width/2+0.6 && dz < p.geometry.parameters.depth/2+0.6 && dy > 0 && dy < 1 && obj.userData.vy <= 0) {
+                    obj.position.y = p.position.y + 0.9; obj.userData.vy = 0; obj.userData.grounded = true;
+                }
+            });
+            if(obj.position.y < lava.position.y + 0.5) {
+                obj.userData.dead = true;
+                if(!multi) die(); else die(id === 1 ? 2 : 1);
+            }
+        }
+
+        function gameLoop() {
+            requestAnimationFrame(gameLoop);
+            if(!active || over) return;
+            if(!waiting) {
+                // P1 Input
+                if(keys['ArrowUp']) p1.position.z -= SPEED; if(keys['ArrowDown']) p1.position.z += SPEED;
+                if(keys['ArrowLeft']) p1.position.x -= SPEED; if(keys['ArrowRight']) p1.position.x += SPEED;
+                const j1 = multi ? keys['Slash'] : keys['Space'];
+                if(j1 && p1.userData.grounded) { p1.userData.vy = JUMP; p1.userData.grounded = false; }
+                
+                if(multi) {
+                    // P2 Input
+                    if(keys['KeyT']) p2.position.z -= SPEED; if(keys['KeyG']) p2.position.z += SPEED;
+                    if(keys['KeyF']) p2.position.x -= SPEED; if(keys['KeyH']) p2.position.x += SPEED;
+                    if(keys['KeyS'] && p2.userData.grounded) { p2.userData.vy = JUMP; p2.userData.grounded = false; }
+                }
+
+                // Rubber-band Lava Logic
+                let leadY = multi ? Math.max(p1.position.y, p2.position.y) : p1.position.y;
+                let gap = leadY - lava.position.y;
+                let scoreBonus = Math.floor(score / 50) * 0.015;
+                let baseSpd = Math.max(0.01, (0.045 + score * 0.0008) - scoreBonus);
+                let lSpeed = baseSpd * (gap > 22 ? 2.8 : (gap < 9 ? 0.35 : 1));
+                lava.position.y += lSpeed;
+                platforms.forEach(p => p.position.y += RISE);
+            }
+            physics(p1, 1); if(multi) physics(p2, 2);
+
+            const w = window.innerWidth, h = window.innerHeight;
+            if(multi) {
+                renderer.setViewport(0, 0, w/2, h); renderer.setScissor(0, 0, w/2, h);
+                cam2.position.lerp(new THREE.Vector3(p2.position.x, p2.position.y+13, p2.position.z+18), 0.1); cam2.lookAt(p2.position);
+                renderer.render(scene, cam2);
+                renderer.setViewport(w/2, 0, w/2, h); renderer.setScissor(w/2, 0, w/2, h);
+                cam1.position.lerp(new THREE.Vector3(p1.position.x, p1.position.y+13, p1.position.z+18), 0.1); cam1.lookAt(p1.position);
+                renderer.render(scene, cam1);
+            } else {
+                renderer.setViewport(0, 0, w, h); renderer.setScissor(0, 0, w, h);
+                cam1.position.lerp(new THREE.Vector3(p1.position.x, p1.position.y+13, p1.position.z+18), 0.1); cam1.lookAt(p1.position);
+                renderer.render(scene, cam1);
+            }
+        }
+        init();
+    </script>
+</body>
+</html>

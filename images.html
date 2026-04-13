@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My images</title>
+  </head>
+  <body>
+    <h1>My Slideshow</h1>
+    <div id="slideshow" style="text-align: center">
+      <img
+        id="slideImage"
+        src="assets/IMG_5924.JPG"
+        alt="Slideshow image"
+        style="
+          max-width: 90vw;
+          max-height: 80vh;
+          display: block;
+          margin: 0 auto;
+        "
+      />
+      <p id="caption" style="margin: 8px 0; font-size: 1rem"></p>
+    </div>
+
+    <div id="controls" style="position: relative; height: 0">
+      <button id="prev" aria-label="Previous image">←</button>
+      <button id="next" aria-label="Next image">→</button>
+      <button id="play">Play</button>
+      <button id="pause">Pause</button>
+    </div>
+
+    <style>
+      body {
+        margin: 0;
+        background: #8b4513; /* brown sides */
+      }
+      #slideshow {
+        background: #fefefe;
+        max-width: 100vw;
+        padding: 24px 0;
+        box-sizing: border-box;
+      }
+      #slideImage {
+        border: 2px solid #543210;
+        background: #fff;
+      }
+      #controls button {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 10px 14px;
+        font-size: 1.1rem;
+      }
+      #controls #prev {
+        left: 10px;
+      }
+      #controls #next {
+        right: 10px;
+      }
+      #controls #play,
+      #controls #pause {
+        display: none;
+      }
+      .cookie-popup {
+        position: fixed;
+        top: 20px;
+        font-size: 2rem;
+        z-index: 1000;
+        opacity: 0;
+        animation: pop 1s ease-out forwards;
+      }
+
+      @keyframes pop {
+        0% {
+          opacity: 0;
+          transform: translateY(-20px) scale(0.8);
+        }
+        50% {
+          opacity: 1;
+          transform: translateY(2px) scale(1.1);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-10px) scale(1);
+        }
+      }
+    </style>
+
+    <script>
+      const photos = [
+        "assets/IMG_5924.JPG",
+        "assets/IMG_5931.JPG",
+        "assets/IMG_5938.JPG",
+        "assets/IMG_5948.JPG",
+        "assets/IMG_6396.JPG",
+        "assets/IMG_6397.JPG",
+        "assets/IMG_6398.JPG",
+        "assets/IMG_6399.JPG",
+        "assets/IMG_6401.JPG",
+        "assets/IMG_6402.JPG",
+        "assets/IMG_6403.JPG",
+      ];
+
+      let currentIndex = 0;
+      let intervalId = null;
+
+      const slideImage = document.getElementById("slideImage");
+      const caption = document.getElementById("caption");
+
+      function showSlide(index) {
+        if (index < 0) index = photos.length - 1;
+        if (index >= photos.length) index = 0;
+        currentIndex = index;
+        slideImage.src = photos[currentIndex];
+        caption.textContent = `Image ${currentIndex + 1} of ${photos.length}`;
+      }
+
+      function nextSlide() {
+        showSlide(currentIndex + 1);
+      }
+
+      function prevSlide() {
+        showSlide(currentIndex - 1);
+      }
+
+      function playSlideshow() {
+        if (intervalId) return;
+        intervalId = setInterval(nextSlide, 2500);
+      }
+
+      function pauseSlideshow() {
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      }
+
+      document.getElementById("next").addEventListener("click", nextSlide);
+      document.getElementById("prev").addEventListener("click", prevSlide);
+      document.getElementById("play").addEventListener("click", playSlideshow);
+      document
+        .getElementById("pause")
+        .addEventListener("click", pauseSlideshow);
+
+      showSlide(0);
+
+      function spawnCookie() {
+        const cookie = document.createElement("div");
+        cookie.className = "cookie-popup";
+        cookie.textContent = "🍪 Click me to go away";
+        cookie.style["left"] = Math.random() < 0.5 ? "20px" : "auto";
+        cookie.style["right"] =
+          cookie.style["left"] === "20px" ? "auto" : "20px";
+        cookie.style["cursor"] = "pointer";
+
+        cookie.addEventListener("click", () => {
+          cookie.remove();
+        });
+
+        document.body.appendChild(cookie);
+      }
+
+      setInterval(spawnCookie, 15000);
+    </script>
+  </body>
+</html>
