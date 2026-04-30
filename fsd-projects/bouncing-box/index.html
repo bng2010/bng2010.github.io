@@ -72,6 +72,7 @@
         var positionX = 0
         var speed = 10
         var exampleVariable = 5;
+        var points = 0
         
         
 
@@ -86,14 +87,8 @@
         function update() {
           moveBoxTo(positionX);
           positionX += speed
-          variableName = variableName + 10; 
-          variableName = variableName + 1;
-          positionX = positionX + speed;
-          variableName = variableName + 3;
-          
+         
         
-          
-          
 
         
 
@@ -111,16 +106,15 @@
           changeBoxText(points)
           positionX = 0
           points++
-        speed = 10
         speed += 3
           
-          
-
-
-
-
-        }
-
+           if (positionX > boardWidth) {
+            speed *= -1 
+      }
+      if (positionX < 0 ) {
+        speed *= -1
+      }
+ 
 
         
       })();
