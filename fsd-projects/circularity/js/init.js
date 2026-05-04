@@ -22,7 +22,7 @@ var init = function (window) {
         // TODO 1 : Declare and initialize our variables
  var circle;
 
- var circle = [];
+ var circles = [];
 
 
         // TODO 2 : Create a function that draws a circle 
@@ -80,8 +80,10 @@ drawCircle();
            
 
             // TODO 8 / TODO 9 : Iterate over the array
-           
-            
+           for (var i = 0; i < circles.length; i++ ) {
+           physikz.updatePosition(circles[i])
+           game.checkCirclePosition(circles[i])
+           }            
         }
     
         /* 
@@ -98,7 +100,7 @@ drawCircle();
             
             // TODO 6 : YOUR CODE STARTS HERE //////////////////////
             if (circle.x < 0){
-                circlex = canvas.width
+                circle.x = canvas.width
             }
             if(circle.y < 0){
                 circle.y = canvas.height
